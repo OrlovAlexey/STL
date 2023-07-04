@@ -4,12 +4,8 @@ using namespace std;
 
 
 int main() {
-//    String s(10, 'a');
-//    int k = 0;
-//    String big_s;
-//    for (size_t i = 0; i < 100000000; ++i) {
-//        big_s.push_back('a');
-//    }
+    String s(10, 'a');
+
     String es = "string1";
     String ed = "string2";
     cin >> es;
