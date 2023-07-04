@@ -5,10 +5,10 @@ String::String() {
 }
 
 String::String(const char *s) {
-for (; s[sz] != '\0'; ++sz) {} // strlen(s)
-capacity = 2 * sz;
-this->str = new char[capacity];
-std::copy(s, s + sz, str);
+    for (; s[sz] != '\0'; ++sz) {} // strlen(s)
+    capacity = 2 * sz;
+    this->str = new char[capacity];
+    std::copy(s, s + sz, str);
 }
 
 String::String(size_t sz, char c) {
@@ -39,17 +39,17 @@ String::String(String &&s) {
     s.str = nullptr;
 }
 
-String& String::operator=(String s) {
+String &String::operator=(String s) {
     swap(s);
     return *this;
 }
 
-String& String::operator+=(const char &c) {
+String &String::operator+=(const char &c) {
     push_back(c);
     return *this;
 }
 
-String& String::operator+=(const String &s) {
+String &String::operator+=(const String &s) {
     if (s.sz + sz > capacity) {
         capacity = 2 * (sz + s.sz);
         char *copy = str;
@@ -75,14 +75,14 @@ bool String::operator==(const String &s) const {
 }
 
 bool String::operator!=(const String &s) const {
-    return !(this->operator==(s));
+    return !(operator==(s));
 }
 
-char& String::operator[](size_t index) {
+char &String::operator[](size_t index) {
     return str[index];
 }
 
-const char& String::operator[](size_t index) const {
+const char &String::operator[](size_t index) const {
     return str[index];
 }
 
@@ -102,7 +102,7 @@ size_t String::find(const String &subs) const {
             }
         }
     }
-    return sz;
+    return -1;
 }
 
 size_t String::rfind(const String &subs) const {
@@ -121,12 +121,12 @@ size_t String::rfind(const String &subs) const {
             }
         }
     }
-    return sz;
+    return -1;
 }
 
 String String::substr(const size_t &start, const size_t &count) const {
     String newStr(count);
-    std::copy(str + start, str + start + count - 1, newStr.str);
+    std::copy(str + start, str + start + count, newStr.str);
     return newStr;
 }
 
@@ -171,7 +171,7 @@ char String::front() const {
     return *str;
 } // returns first symbol in string
 
-char& String::front() {
+char &String::front() {
     return *str;
 }
 
@@ -179,7 +179,7 @@ char String::back() const {
     return str[sz - 1];
 } // returns last symbol in string
 
-char& String::back() {
+char &String::back() {
     return str[sz - 1];
 }
 
@@ -193,26 +193,26 @@ void String::swap(String &s) {
     std::swap(str, s.str);
 }
 
-String operator+ (const String& a, const String& b){
+String operator+(const String &a, const String &b) {
     String copy = a;
     copy += b;
     return copy;
 }
 
-std::ostream& operator<< (std::ostream& out, const String& s){
-    for(size_t i = 0; i < s.length(); ++i){
+std::ostream &operator<<(std::ostream &out, const String &s) {
+    for (size_t i = 0; i < s.length(); ++i) {
         out << s[i];
     }
     return out;
 }
 
-std::istream& operator>>(std::istream& in, String& s){
+std::istream &operator>>(std::istream &in, String &s) {
     char c;
     s.clear();
     in.get(c);
-    while(c != '\n' && c != ' ' && c != '\0' && c != '\t' && c != '\r'){
+    while (c != '\n' && c != ' ' && c != '\0' && c != '\t' && c != '\r') {
         s.push_back(c);
-        if(!in.get(c))
+        if (!in.get(c))
             return in;
     }
     return in;
