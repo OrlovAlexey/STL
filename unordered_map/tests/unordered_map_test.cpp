@@ -1,10 +1,9 @@
-#pragma once
 #include <vector>
 #include <string>
 //#include <unordered_map>
 #include <iterator>
 #include <cassert>
-#include "unordered_map.h"
+#include "UnorderedMap.hpp"
 
 
 void SimpleTest() {
@@ -377,11 +376,11 @@ void TestCustomAlloc() {
 }
 
 
-//int main() {
-//    SimpleTest();
-//    TestIterators();
-//    TestConstIteratorDoesntAllowModification(0);
-//    TestNoRedundantCopies();
-//    TestCustomHashAndCompare();
-//    TestCustomAlloc();
-//}
+int main() {
+    SimpleTest();
+    TestIterators();
+    TestConstIteratorDoesntAllowModification(0);
+    TestNoRedundantCopies();
+    TestCustomHashAndCompare();
+    TestCustomAlloc();
+}
