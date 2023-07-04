@@ -3,13 +3,14 @@
 
 using namespace std;
 
+
 template <typename T>
 class Deque{
     static const size_t base = 8;
     T** array;
-    size_t sz;// number of elements
-    size_t capacity;// current_array_size = capacity / base
-    pair<size_t, size_t> front;// first = index in outer array, second = index in inner array (0 <= second <= base-1)
+    size_t sz; // number of elements
+    size_t capacity; // current_array_size = capacity / base
+    pair<size_t, size_t> front; // first = index in outer array, second = index in inner array (0 <= second <= base-1)
     pair<size_t, size_t> back;
 public:
     Deque() {
@@ -31,10 +32,17 @@ public:
                 try {
                     new(array[(sz / base) + i] + j) T(element);
                 } catch (...) {
+                    for (size_t i1 = i + 1; i1 > 0; --i1) {
+                        for (size_t j1 = (i1 == i + 1 ? j + 1 : base); j1 > 0; --j1) {
+                            (array[(sz / base) + i1 - 1] + j1 - 1)->~T();
+                        }
+                        delete[] array[(sz / base) + i1 - 1];
+                    }
+                    delete[] array;
                     throw;
                 }
             }
-        }// full buckets
+        } // full buckets
 
         if (sz % base == 0) {
             front = {(2 * (sz / base) - 1), 0};
@@ -42,26 +50,46 @@ public:
         else {
             array[2 * (sz / base)] = reinterpret_cast<T*>(new int8_t[base * sizeof(T)]);
             for (size_t j = 0; j < (sz % base); ++j) {
-                new(array[2 * (sz / base)] + (base - 1 - j)) T(element);
+                try {
+                    new(array[2 * (sz / base)] + (base - 1 - j)) T(element);
+                } catch (...) {
+                    for (size_t j1 = base; j1 > j; --j1) {
+                        (array[2 * (sz / base)] + j1 - 1)->~T();
+                    }
+                    delete[] array[2 * (sz / base)];
+
+                    for (size_t i1 = (sz / base); i1 > 0; --i1) {
+                        for (size_t j1 = (i1 == (sz / base) ? j + 1 : base); j1 > 0; --j1) {
+                            (array[(sz / base) + i1 - 1] + j1 - 1)->~T();
+                        }
+                        delete[] array[(sz / base) + i1 - 1];
+                    }
+                    delete[] array;
+                    throw;
+                }
             }
             front = {2 * (sz / base), base - (sz % base)};
-        }// last bucket
+        } // last bucket
         back = {(sz / base), base - 1};
     }
 
-    Deque(const Deque& another) {// new object
+    Deque(const Deque& another) {
         sz = another.sz;
         capacity = 3 * sz;
         try {
             array = new T* [capacity / base + 1];
         } catch (...) {
+            delete[] array;
             throw;
         }
         for(size_t i = another.front.first + 1; i >= another.back.first + 1; --i) {
             try {
                 array[i - 1] = reinterpret_cast<T*>(new int8_t[base * sizeof(T)]);
             } catch (...) {
-                this->~Deque();
+                for (size_t i1 = i + 1; i1 < another.front.first + 2; ++i1) {
+                    delete[] array[i1 - 1];
+                }
+                delete[] array;
                 throw;
             }
             for (size_t j = (i - 1 == another.front.first ? another.front.second : 0);
@@ -69,7 +97,14 @@ public:
                 try {
                     new(array[i - 1] + j) T(another.array[i - 1][j]);
                 } catch (...) {
-                    this->~Deque();
+                    for (size_t i1 = i; i1 < another.front.first + 2; ++i1) {
+                        for (size_t j1 = (i1 == i ? j + 2 : base); j1 >= (i1 == another.front.first + 1 ? another.front.second + 1 : 1); --j1) {
+                            (array[i1 - 1] + j1 - 1)->~T();
+                            delete (array[i1 - 1] + j1 - 1);
+                        }
+                        delete[] array[i1 - 1];
+                    }
+                    delete[] array;
                     throw;
                 }
             }
@@ -78,14 +113,13 @@ public:
         back = another.back;
     }
 
-    Deque& operator= (const Deque& deque1){// copying to old object
+    Deque& operator= (const Deque& deque1){ // copying to old object
         if (this != &deque1) {
-            Deque<T> copy(*this);
+            T** old_array = array;
+            size_t old_sz = sz;
+            size_t old_cap = capacity;
 
-            for (size_t i = front.first; i + 1 > back.first; --i) {
-                delete[] reinterpret_cast<int8_t*>(array[i]);
-            }
-            delete[] array;
+            this->~Deque();
 
             sz = deque1.sz;
             capacity = 3 * sz;
@@ -100,25 +134,27 @@ public:
                     } catch (...) {
                         // if constructor caught an error
                         for (; i <= deque1.front.first + 1; ++i) {
+                            for (; j >= (i == deque1.front.first + 1 ? deque1.front.second + 1 : 1); --j) {
+                                (array[i - 1] + j - 1)->~T();
+                            }
                             delete[] array[i - 1];
                         }
                         delete[] array;
-                        sz = copy.sz;
-                        capacity = copy.capacity;
-                        front = copy.front;
-                        back = copy.back;
-                        array = new T* [capacity / base + 1];
-                        for(size_t k = copy.front.first + 1; k >= copy.back.first + 1; --k) {
-                            array[k - 1] = reinterpret_cast<T*>(new int8_t[base * sizeof(T)]);
-                            for (size_t l = (k - 1 == copy.front.first ? copy.front.second : 0);
-                                 l <= (k - 1 == copy.back.first ? copy.back.second : (base - 1)); ++l) {
-                                new(array[k - 1] + l) T(copy.array[k - 1][l]);
-                            }
-                        }
-
+                        sz = old_sz;
+                        capacity = old_cap;
+                        array = old_array;
                     }
                 }
             }
+            for(size_t i = front.first + 1; i >= back.first + 1; --i) {
+                for (size_t j = (i - 1 == front.first ? front.second : 0);
+                     j <= (i - 1 == back.first ? back.second : (base - 1)); ++j) {
+                    (old_array[i - 1] + j)->~T();
+                }
+                delete[] old_array[i - 1];
+            }
+            delete[] old_array;
+
             front = deque1.front;
             back = deque1.back;
         }
@@ -162,28 +198,38 @@ public:
     }
 
     void push_back(const T& element) {
-        if (back.second == base - 1) {
-            while (back.first == 0) {
-                try {
-                    fixer();
-                } catch (...) {
-                    throw;
+        if (back.second == base - 1) { // allocating new memory
+            if (back.first == 0) {
+                while (back.first == 0) {
+                    try {
+                        fixer();
+                    } catch (...) {
+                        throw;
+                    }
                 }
+
             }
             --back.first;
             try {
-                array[back.first] = reinterpret_cast<T*>(new int8_t[base * sizeof(T)]);
+                array[back.first] = reinterpret_cast<T *>(new int8_t[base * sizeof(T)]);
             } catch (...) {
                 ++back.first;
                 throw;
             }
+            try {
+                new(array[back.first] + ((back.second + 1) % base)) T(element);
+            } catch (...) {
+                delete[] reinterpret_cast<int8_t*>(array[back.first]);
+                ++back.first;
+                throw;
+            }
         }
-        try {
-            new(array[back.first] + ((back.second + 1) % base)) T(element);
-        } catch (...) {
-            delete[] reinterpret_cast<int8_t*>(array[back.first]);
-            ++back.first;
-            throw;
+        else { // no allocating
+            try {
+                new(array[back.first] + ((back.second + 1) % base)) T(element);
+            } catch (...) {
+                throw;
+            }
         }
         back.second = (back.second + 1) % base;
         ++sz;
@@ -205,13 +251,20 @@ public:
                 --front.first;
                 throw;
             }
+            try {
+                new(array[front.first] + ((front.second + base - 1) % base)) T(element);
+            } catch (...) {
+                delete[] reinterpret_cast<int8_t*>(array[front.first]);
+                --front.first;
+                throw;
+            }
         }
-        try {
-            new(array[front.first] + ((front.second + base - 1) % base)) T(element);
-        } catch (...) {
-            delete[] reinterpret_cast<int8_t*>(array[front.first]);
-            --front.first;
-            throw;
+        else {
+            try {
+                new(array[front.first] + ((front.second + base - 1) % base)) T(element);
+            } catch (...) {
+                throw;
+            }
         }
         front.second = (front.second + base - 1) % base;
         ++sz;
@@ -239,13 +292,23 @@ public:
         --sz;
     }
 
+    // std::conditional_t<IsConst, const T, T> to constructing traits correctly и reverse iterator would have correct returning types
     template <bool IsConst = false>
-    struct common_iterator : public std::iterator<std::random_access_iterator_tag, T> {
+    struct common_iterator : public std::iterator<std::random_access_iterator_tag, std::conditional_t<IsConst, const T, T>> {
+    public:
+//        using iterator_category = std::random_access_iterator_tag;
+//        using value_type = std::conditional_t<IsConst, const T, T>;
+//        using difference_type = int;
+//        using pointer = std::conditional_t<IsConst, const T*, T*>;
+//        using reference = std::conditional_t<IsConst, const T&, T&>;
         pair<int, int> index;
-        std::conditional_t<IsConst, const T**, T**> p;// указатель на начало дека
+        std::conditional_t<IsConst, const T**, T**> p; // pointer on the start of the deque
         common_iterator() : index({0, 0}), p(nullptr){}
         common_iterator(int index1, int index2, std::conditional_t<IsConst, const T**, T**> P) : index({index1, index2}), p(P) {}
         common_iterator(const common_iterator& it1) : index(it1.index), p(it1.p){}
+        common_iterator(const common_iterator<false>& other) : index(other.index), p(other.p){} // cast from usual to const
+
+
         common_iterator& operator= (common_iterator it1) {
             index = it1.index;
             p = it1.p;
@@ -363,6 +426,10 @@ public:
         }
         return const_iterator(back.first, back.second + 1, const_cast<const T**>(array));
     }
+
+    // all the following code can be replaced with:
+    //    using reverse_iterator = std::reverse_iterator<iterator>;
+    //    using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
     template <bool IsConst>
     struct common_reverse_iterator : public std::iterator<std::random_access_iterator_tag, T> {
@@ -517,7 +584,11 @@ public:
     }
 
     ~Deque() {
-        for (size_t i = front.first + 1; i >= back.first + 1; --i) {
+        for(size_t i = front.first + 1; i >= back.first + 1; --i) {
+            for (size_t j = (i - 1 == front.first ? front.second : 0);
+                 j <= (i - 1 == back.first ? back.second : (base - 1)); ++j) {
+                (array[i - 1] + j)->~T(); // calling destructor directly
+            }
             delete[] array[i - 1];
         }
         delete[] array;
@@ -531,7 +602,7 @@ public:
             }
             cout << '\n';
         }
-    }// for debug
+    } // for debug
 
     void fixer() {
         capacity *= 3;
@@ -539,7 +610,7 @@ public:
         size_t old_front_first = front.first;
         front.first = (capacity / base + 1) / 2 + (old_front_first - back.first + 1 > 2 ? old_front_first - back.first - 1 : 0) / 2 +
                       (old_front_first - back.first + 1 > 2 ? old_front_first - back.first - 1 : 0) % 2 +
-                      (old_front_first == back.first ? 0 : 1);// recounting indices
+                      (old_front_first == back.first ? 0 : 1); // recounting indices
         back.first = (capacity / base + 1) / 2 - (old_front_first - back.first + 1 > 2 ? old_front_first - back.first - 1 : 0) / 2;
         for(size_t i = front.first + 1; i >= back.first + 1; --i) {
             copy[i - 1] = array[old_front_first];
@@ -547,6 +618,6 @@ public:
         }
         delete[] array;
         array = copy;
-    }// make extension of the array (capacity -> 3*capacity)
+    } // makes extension of the array (capacity -> 3*capacity)
 
 };
