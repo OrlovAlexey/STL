@@ -91,6 +91,7 @@ public:
     typedef char*&         reference;
     typedef const char*&   const_reference;
     typedef char*          value_type;
+
     template<typename U>
     struct rebind {
         using other = FastAllocator<U>;

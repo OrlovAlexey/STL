@@ -15,8 +15,13 @@ add_executable(list_fast_alloc list_fast_alloc/main.cpp list_fast_alloc/src/Pool
 add_executable(test_list_fast_alloc list_fast_alloc/tests/list_test.cpp list_fast_alloc/src/Pool.hpp list_fast_alloc/src/FixedAllocator.hpp list_fast_alloc/src/FastAllocator.hpp list_fast_alloc/src/List.hpp)
 
 target_include_directories(
+        list_fast_alloc PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/list_fast_alloc/src"
+)
+
+target_include_directories(
         test_list_fast_alloc PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/list_fact_alloc/src"
+        "${CMAKE_CURRENT_SOURCE_DIR}/list_fast_alloc/src"
 )
 
 target_link_libraries(
